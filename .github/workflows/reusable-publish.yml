@@ -39,7 +39,7 @@ jobs:
           IMAGE_NAME: ${{ inputs.image_name }}
         run: docker build --tag "$IMAGE_NAME:scan-${GITHUB_SHA}" demo-app
       - name: Scan exact image with Trivy
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ inputs.image_name }}:scan-${{ github.sha }}
           severity: CRITICAL,HIGH
