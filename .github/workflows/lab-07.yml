@@ -1,0 +1,20 @@
+name: "Lab 07 - Docker smoke test"
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: docker build --tag ci-demo:lab-07 demo-app
+      - run: docker run --detach --rm --name lab-07 --publish 127.0.0.1:3000:3000 ci-demo:lab-07
+      - run: |
+          for attempt in {1..30}; do
+            curl --fail --silent http://127.0.0.1:3000/health && exit 0
+            sleep 1
+          done
+          exit 1
+      - if: always()
+        run: docker stop lab-07
+

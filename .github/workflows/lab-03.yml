@@ -1,0 +1,20 @@
+name: "Lab 03 - Contexts and outputs"
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    outputs:
+      short-sha: ${{ steps.value.outputs.short-sha }}
+    steps:
+      - id: value
+        run: echo "short-sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+  consume:
+    needs: produce
+    runs-on: ubuntu-latest
+    env:
+      SHORT_SHA: ${{ needs.produce.outputs.short-sha }}
+    steps:
+      - run: echo "Previous job produced $SHORT_SHA"
+

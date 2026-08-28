@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev]
+  push:
+    branches: [dev]
+  merge_group:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  core-ci:
+    if: github.ref == 'refs/heads/dev' || github.base_ref == 'dev' || github.event.merge_group.base_ref == 'refs/heads/dev'
+    uses: ./.github/workflows/reusable-ci.yml
+    with:
+      working_directory: demo-app
+      node_versions: '["22", "24"]'
+      upload_artifacts: true
+    permissions:
+      contents: read
+
+  security:
+    if: github.ref == 'refs/heads/dev' || github.base_ref == 'dev' || github.event.merge_group.base_ref == 'refs/heads/dev'
+    uses: ./.github/workflows/reusable-security.yml
+    with:
+      profile: ${{ github.event_name == 'pull_request' && 'pr' || 'dev' }}
+      working_directory: demo-app
+      upload_sarif: false
+      run_sonar: false
+    permissions:
+      contents: read
+
+  publish-dev:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: [core-ci, security]
+    uses: ./.github/workflows/reusable-publish.yml
+    with:
+      image_name: ghcr.io/${{ github.repository }}
+      tags: |
+        dev
+        sha-${{ github.sha }}
+      artifact_suffix: dev-${{ github.run_id }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write

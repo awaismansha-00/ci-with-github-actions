@@ -1,0 +1,5 @@
+demo-app/dist/
+demo-app/coverage/
+demo-app/package-lock.json
+security/fixtures/
+

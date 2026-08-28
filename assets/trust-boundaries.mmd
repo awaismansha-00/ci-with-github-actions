@@ -1,0 +1,5 @@
+flowchart LR
+  Fork[Untrusted fork] -->|read-only, no secrets| PR[PR checks]
+  Dev[Protected dev] -->|packages write only in job| Registry[GHCR]
+  Tag[Protected SemVer tag] -->|contents + packages + OIDC| Release
+  Release --> Registry

@@ -1,0 +1,11 @@
+title = "CI learning repository Gitleaks lab"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "training-secret-marker"
+description = "Synthetic marker used only by the manual secret-scanning lab"
+regex = '''TRAINING_SECRET_DEMO_[A-Z0-9]{16}'''
+keywords = ["TRAINING_SECRET_DEMO_"]
+

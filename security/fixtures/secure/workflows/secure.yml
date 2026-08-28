@@ -1,0 +1,10 @@
+name: Secure fixture
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No untrusted expression is interpolated into this shell script."
+

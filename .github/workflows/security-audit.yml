@@ -1,0 +1,58 @@
+name: Security audit
+
+on:
+  schedule:
+    - cron: "43 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    if: github.ref == 'refs/heads/dev'
+    uses: ./.github/workflows/reusable-security.yml
+    with:
+      profile: audit
+      working_directory: demo-app
+      upload_sarif: false
+      run_sonar: false
+    permissions:
+      contents: read
+
+  deep-audit:
+    name: deep-security-audit
+    needs: security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Build audit image
+        run: docker build --tag ci-demo:audit demo-app
+      - name: Generate image and source SBOMs
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: ci-demo:audit
+          format: spdx-json
+          output-file: audit-image.spdx.json
+          upload-artifact: false
+      - name: Full image vulnerability inventory
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          image-ref: ci-demo:audit
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          format: json
+          output: audit-trivy.json
+          exit-code: "0"
+      - name: Upload scheduled audit evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: scheduled-security-audit
+          path: |
+            audit-image.spdx.json
+            audit-trivy.json
+          retention-days: 30
+          if-no-files-found: warn

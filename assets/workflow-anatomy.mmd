@@ -1,0 +1,9 @@
+flowchart TD
+  Event[Event / on] --> Workflow
+  Workflow --> Permissions
+  Workflow --> JobA[Job: quality]
+  Workflow --> JobB[Job: test matrix]
+  JobA --> JobC[Job: build]
+  JobB --> JobC
+  JobC --> Steps[Ordered steps]
+

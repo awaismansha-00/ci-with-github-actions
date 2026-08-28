@@ -1,0 +1,8 @@
+flowchart LR
+  PR[Pull request] --> Quality
+  PR --> Security[Fast security]
+  Quality --> Build
+  Security --> Build
+  Build --> Smoke[Container smoke test]
+  Smoke --> Dev{Trusted dev?}
+  Dev -->|yes| Publish[Scan, SBOM, push, attest, sign]

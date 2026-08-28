@@ -1,0 +1,13 @@
+# TRAINING ONLY: this file is outside .github/workflows and never executes.
+name: Insecure fixture
+on: pull_request_target
+permissions: write-all
+jobs:
+  unsafe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: echo "${{ github.event.pull_request.title }}"
+

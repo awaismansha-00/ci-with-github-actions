@@ -1,0 +1,9 @@
+flowchart LR
+  Source --> Secrets
+  Secrets --> SAST
+  SAST --> Dependencies
+  Dependencies --> Configuration
+  Configuration --> Image
+  Image --> DAST
+  DAST --> SupplyChain[SBOM + provenance + signature]
+

@@ -1,0 +1,14 @@
+name: "Lab 09 - Reusable workflow"
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  call-ci:
+    uses: ./.github/workflows/reusable-ci.yml
+    with:
+      working_directory: demo-app
+      node_versions: '["24"]'
+      upload_artifacts: false
+    permissions:
+      contents: read
+

@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: validate-version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      major-minor: ${{ steps.version.outputs.major-minor }}
+      major: ${{ steps.version.outputs.major }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Compare tag with package version
+        id: version
+        shell: bash
+        run: |
+          package_version=$(node -p "require('./demo-app/package.json').version")
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [ "$package_version" != "$tag_version" ]; then
+            echo "Tag $tag_version does not match package.json $package_version" >&2
+            exit 1
+          fi
+          major_minor="${tag_version%.*}"
+          major="${tag_version%%.*}"
+          echo "version=$tag_version" >> "$GITHUB_OUTPUT"
+          echo "major-minor=$major_minor" >> "$GITHUB_OUTPUT"
+          echo "major=$major" >> "$GITHUB_OUTPUT"
+
+  core-ci:
+    uses: ./.github/workflows/reusable-ci.yml
+    with:
+      working_directory: demo-app
+      node_versions: '["22", "24"]'
+      upload_artifacts: true
+    permissions:
+      contents: read
+
+  security:
+    uses: ./.github/workflows/reusable-security.yml
+    with:
+      profile: release
+      working_directory: demo-app
+      upload_sarif: false
+      run_sonar: false
+    permissions:
+      contents: read
+
+  publish:
+    needs: [version, core-ci, security]
+    uses: ./.github/workflows/reusable-publish.yml
+    with:
+      image_name: ghcr.io/${{ github.repository }}
+      tags: |
+        ${{ needs.version.outputs.version }}
+        ${{ needs.version.outputs.major-minor }}
+        ${{ needs.version.outputs.major }}
+        latest
+      artifact_suffix: release-${{ needs.version.outputs.version }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+
+  github-release:
+    name: github-release
+    needs: [version, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download release evidence
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          pattern: "*"
+          path: release-assets
+          merge-multiple: false
+      - name: Create checksums
+        run: find release-assets -type f -print0 | sort -z | xargs -0 sha256sum > release-assets/SHA256SUMS
+      - name: Bundle release evidence
+        run: tar -czf security-evidence.tgz -C release-assets .
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_REFERENCE: ${{ needs.publish.outputs.image_reference }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --title "$GITHUB_REF_NAME" \
+            --notes "Published image: $IMAGE_REFERENCE" \
+            release-assets/SHA256SUMS security-evidence.tgz

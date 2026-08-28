@@ -1,0 +1,24 @@
+name: "Lab 18 - Verify signature and attestation"
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag in this repository's GHCR package
+        type: string
+        default: dev
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+      - env:
+          IMAGE: ghcr.io/${{ github.repository }}:${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cosign verify \
+            --certificate-identity-regexp "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/(ci|release)\\.yml@.*" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "$IMAGE"
+          gh attestation verify "oci://$IMAGE" -R "$GITHUB_REPOSITORY"

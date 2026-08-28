@@ -1,0 +1,11 @@
+sequenceDiagram
+  actor Maintainer
+  participant GH as GitHub Actions
+  participant REG as GHCR
+  Maintainer->>GH: push signed vX.Y.Z tag
+  GH->>GH: validate version, CI, security
+  GH->>GH: build once, scan, create SBOM
+  GH->>REG: push immutable digest and tags
+  GH->>REG: attach signature and provenance
+  GH->>GH: create release with checksums
+

@@ -1,0 +1,22 @@
+name: "Lab 13 - Dependency security"
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/setup-node-project
+        with:
+          node-version: "24"
+      - working-directory: demo-app
+        run: |
+          npm audit --omit=dev --audit-level=high
+          npm query ':root > *' --json > ../dependency-inventory.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dependency-inventory
+          path: dependency-inventory.json
+          retention-days: 7
+

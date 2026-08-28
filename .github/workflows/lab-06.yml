@@ -1,0 +1,29 @@
+name: "Lab 06 - Jobs and artifacts"
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/setup-node-project
+        with:
+          node-version: "24"
+      - working-directory: demo-app
+        run: npm run build
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: lab-06-dist
+          path: demo-app/dist
+          retention-days: 7
+  inspect:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: lab-06-dist
+          path: dist
+      - run: find dist -type f -maxdepth 2
+

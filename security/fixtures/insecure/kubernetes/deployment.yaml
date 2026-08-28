@@ -1,0 +1,22 @@
+# TRAINING ONLY: deliberately privileged and mutable.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: insecure-training-api
+spec:
+  selector:
+    matchLabels:
+      app: insecure-training-api
+  template:
+    metadata:
+      labels:
+        app: insecure-training-api
+    spec:
+      hostNetwork: true
+      containers:
+        - name: api
+          image: node:latest
+          securityContext:
+            privileged: true
+            runAsUser: 0
+

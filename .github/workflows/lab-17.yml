@@ -1,0 +1,28 @@
+name: "Lab 17 - SBOM"
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: docker build --tag ci-demo:lab-17 demo-app
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          path: demo-app
+          format: spdx-json
+          output-file: source.spdx.json
+          upload-artifact: false
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: ci-demo:lab-17
+          format: spdx-json
+          output-file: image.spdx.json
+          upload-artifact: false
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: lab-17-sboms
+          path: "*.spdx.json"
+          retention-days: 7
+

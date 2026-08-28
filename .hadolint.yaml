@@ -1,0 +1,6 @@
+failure-threshold: warning
+ignored:
+  - DL3018
+  - DL3006 # FROM uses an ARG whose default is a version-and-digest pinned image.
+trusted-registries:
+  - docker.io

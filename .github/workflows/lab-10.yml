@@ -1,0 +1,23 @@
+name: "Lab 10 - Release dry run"
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/setup-node-project
+        with:
+          node-version: "24"
+      - working-directory: demo-app
+        run: |
+          npm run build
+          npm pack --dry-run
+      - run: tar -czf demo-app-${GITHUB_SHA::7}.tgz -C demo-app dist package.json package-lock.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-dry-run
+          path: "demo-app-*.tgz"
+          retention-days: 7
+

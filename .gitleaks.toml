@@ -1,0 +1,15 @@
+title = "CI learning repository automatic scan"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Intentionally insecure manual-lab inputs"
+paths = ['''security/fixtures/insecure/.*''']
+
+[[rules]]
+id = "training-secret-marker"
+description = "Synthetic marker used only by manual training"
+regex = '''TRAINING_SECRET_DEMO_[A-Z0-9]{16}'''
+keywords = ["TRAINING_SECRET_DEMO_"]
+

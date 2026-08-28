@@ -1,0 +1,14 @@
+name: "Lab 01 - Hello workflow"
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show runner context
+        run: |
+          echo "Hello from GitHub Actions"
+          echo "Runner OS: $RUNNER_OS"
+          echo "Commit: $GITHUB_SHA"
+

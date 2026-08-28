@@ -1,0 +1,25 @@
+name: "Lab 02 - Inputs and filters"
+on:
+  workflow_dispatch:
+    inputs:
+      greeting:
+        description: Greeting to print
+        type: choice
+        options: [hello, welcome, good-morning]
+        default: hello
+      verbose:
+        description: Show event metadata
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  inputs:
+    runs-on: ubuntu-latest
+    env:
+      GREETING: ${{ inputs.greeting }}
+    steps:
+      - run: echo "$GREETING, $GITHUB_ACTOR"
+      - if: inputs.verbose
+        run: echo "event=$GITHUB_EVENT_NAME ref=$GITHUB_REF"
+

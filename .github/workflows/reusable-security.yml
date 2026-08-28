@@ -1,0 +1,151 @@
+name: Reusable security
+
+on:
+  workflow_call:
+    inputs:
+      profile:
+        type: string
+        required: true
+      working_directory:
+        type: string
+        default: demo-app
+      image_reference:
+        type: string
+        default: ""
+      upload_sarif:
+        type: boolean
+        default: false
+      run_sonar:
+        type: boolean
+        default: false
+    secrets:
+      SONAR_TOKEN:
+        required: false
+      SONAR_HOST_URL:
+        required: false
+    outputs:
+      source_sbom_artifact:
+        value: ${{ jobs.metadata.outputs.source-sbom-artifact }}
+      image_sbom_artifact:
+        value: ${{ jobs.metadata.outputs.image-sbom-artifact }}
+
+permissions:
+  contents: read
+
+jobs:
+  metadata:
+    name: security-metadata
+    runs-on: ubuntu-latest
+    outputs:
+      source-sbom-artifact: ${{ steps.names.outputs.source-sbom-artifact }}
+      image-sbom-artifact: ${{ steps.names.outputs.image-sbom-artifact }}
+    steps:
+      - id: names
+        run: |
+          echo "source-sbom-artifact=security-source-sbom" >> "$GITHUB_OUTPUT"
+          echo "image-sbom-artifact=security-image-sbom" >> "$GITHUB_OUTPUT"
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  workflow-security:
+    name: workflow-security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+      - name: Validate immutable references, exceptions, and fixture boundaries
+        run: npm run validate
+      - name: Run Actionlint
+        run: docker run --rm --volume "${PWD}:/repo" --workdir /repo rhysd/actionlint:1.7.9
+      - name: Run Zizmor
+        uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2
+        with:
+          persona: auditor
+
+  dependency-review:
+    name: dependency-review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4
+        with:
+          fail-on-severity: high
+          license-check: false
+
+  sast:
+    name: sast
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up project
+        uses: ./.github/actions/setup-node-project
+        with:
+          node-version: "24"
+          working-directory: ${{ inputs.working_directory }}
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+      - name: Run security lint rules
+        working-directory: ${{ inputs.working_directory }}
+        run: npm run lint
+      - name: Audit production dependencies
+        working-directory: ${{ inputs.working_directory }}
+        run: npm audit --omit=dev --audit-level=high
+
+  configuration-security:
+    name: configuration-security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Prepare report directory
+        run: mkdir -p reports
+      - name: Scan IaC and Dockerfile with Checkov
+        uses: bridgecrewio/checkov-action@5659ddea96102e16d8f221b3d8402453c0b1c150 # v12
+        with:
+          directory: .
+          config_file: .checkov.yml
+          output_format: cli,json
+          output_file_path: console,reports/checkov.json
+      - name: Lint production Dockerfile
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
+        with:
+          dockerfile: demo-app/Dockerfile
+          config: .hadolint.yaml
+      - name: Scan application filesystem
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          scan-type: fs
+          scan-ref: demo-app
+          scanners: vuln,secret,misconfig
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          format: sarif
+          output: reports/trivy-fs.sarif
+          exit-code: "1"
+      - name: Upload configuration reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: configuration-security-reports
+          path: reports
+          retention-days: 30
+          if-no-files-found: warn

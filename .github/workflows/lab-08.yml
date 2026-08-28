@@ -1,0 +1,31 @@
+name: "Lab 08 - GHCR publishing"
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_publish:
+        description: Publish a lab image to GHCR
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: inputs.confirm_publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - env:
+          IMAGE: ghcr.io/${{ github.repository }}:lab-${{ github.run_number }}
+        run: |
+          docker build --tag "$IMAGE" demo-app
+          docker push "$IMAGE"
+

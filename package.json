@@ -1,0 +1,17 @@
+{
+  "name": "ci-with-github-actions-learning-repo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate:exceptions": "node scripts/validate-exceptions.mjs",
+    "validate:pins": "node scripts/validate-action-pins.mjs",
+    "validate:boundaries": "node scripts/validate-boundaries.mjs",
+    "validate:yaml": "node scripts/validate-yaml.mjs",
+    "validate:content": "node scripts/validate-content.mjs",
+    "validate": "npm run validate:exceptions && npm run validate:pins && npm run validate:boundaries && npm run validate:yaml && npm run validate:content"
+  },
+  "devDependencies": {
+    "yaml": "^2.8.1"
+  }
+}

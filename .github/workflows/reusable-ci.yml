@@ -1,0 +1,128 @@
+name: Reusable CI
+
+on:
+  workflow_call:
+    inputs:
+      working_directory:
+        type: string
+        default: demo-app
+      node_versions:
+        type: string
+        default: '["22", "24"]'
+      upload_artifacts:
+        type: boolean
+        default: true
+    outputs:
+      build_artifact:
+        description: Compiled application artifact name.
+        value: ${{ jobs.build.outputs.artifact-name }}
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up project
+        uses: ./.github/actions/setup-node-project
+        with:
+          node-version: "24"
+          working-directory: ${{ inputs.working_directory }}
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+      - name: Check formatting
+        working-directory: ${{ inputs.working_directory }}
+        run: npm run format:check
+      - name: Lint
+        working-directory: ${{ inputs.working_directory }}
+        run: npm run lint
+      - name: Type-check
+        working-directory: ${{ inputs.working_directory }}
+        run: npm run typecheck
+      - name: Validate repository policy files
+        run: npm run validate
+
+  test:
+    name: test (${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ${{ fromJSON(inputs.node_versions) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up project
+        uses: ./.github/actions/setup-node-project
+        with:
+          node-version: ${{ matrix.node-version }}
+          working-directory: ${{ inputs.working_directory }}
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+      - name: Run tests with coverage
+        working-directory: ${{ inputs.working_directory }}
+        run: npm run test:coverage
+      - name: Upload coverage
+        if: ${{ always() && inputs.upload_artifacts && matrix.node-version == '24' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage
+          path: ${{ inputs.working_directory }}/coverage
+          retention-days: 30
+          if-no-files-found: warn
+
+  build:
+    name: build
+    needs: [quality, test]
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-name: demo-app-dist
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up project
+        uses: ./.github/actions/setup-node-project
+        with:
+          node-version: "24"
+          working-directory: ${{ inputs.working_directory }}
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+      - name: Build application
+        working-directory: ${{ inputs.working_directory }}
+        run: npm run build
+      - name: Upload compiled application
+        if: ${{ inputs.upload_artifacts }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: demo-app-dist
+          path: ${{ inputs.working_directory }}/dist
+          retention-days: 30
+          if-no-files-found: error
+
+  container-smoke:
+    name: container-smoke
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Build container
+        run: docker build --tag ci-demo:smoke demo-app
+      - name: Start container
+        run: docker run --detach --rm --name ci-demo-smoke --publish 127.0.0.1:3000:3000 ci-demo:smoke
+      - name: Wait for health endpoint
+        shell: bash
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs ci-demo-smoke
+          exit 1
+      - name: Stop container
+        if: always()
+        run: docker stop ci-demo-smoke
+

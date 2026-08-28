@@ -1,0 +1,6 @@
+# rule-id\taction
+# IGNORE, INFO, WARN, and FAIL are accepted by ZAP baseline scan.
+10015\tWARN
+10021\tWARN
+10038\tWARN
+
