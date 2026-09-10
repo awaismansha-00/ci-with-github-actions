@@ -9,9 +9,8 @@ The secure publisher builds once and tags the local image as a scan candidate.
 Only after Trivy and DAST succeed does it push tags. The registry digest is then
 resolved and used by signing and attestation, preventing scan/rebuild drift.
 
-The gate blocks critical findings and fixable highs. Unfixed highs stay visible
-for risk review and base-image upgrade planning.
+The gate blocks fixable high and critical findings. Unfixed findings stay
+visible for risk review and base-image upgrade planning.
 
 Run **Lab 16**, download the SARIF artifact, and identify whether findings come
 from the OS layer or application dependencies.
-

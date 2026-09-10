@@ -7,7 +7,7 @@
 | Secrets | Every unsuppressed detection | None |
 | Workflow security | Mutable action refs, unsafe privileged PR patterns, script injection, excessive permissions | Advisory hardening |
 | SAST | High and critical findings | Medium and lower |
-| Dependencies/images | Critical findings; high findings with a fix | Medium/low and unfixed high findings |
+| Dependencies/images | High and critical findings with a fix | Medium/low and unfixed high/critical findings |
 | IaC | Privileged/root workloads, public exposure, embedded secrets, missing encryption, wildcard identity permissions | Other recommendations |
 | DAST | High-risk alerts | Medium and lower |
 | Licenses | None by default | Full inventory |
@@ -25,4 +25,3 @@ expired, malformed, overlong, or duplicate records.
 
 Permanent exclusions are allowed only for the clearly marked training fixtures.
 They cannot match application or production workflow paths.
-

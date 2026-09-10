@@ -4,6 +4,10 @@
 [![Security audit](https://github.com/awaismansha-00/ci-with-github-actions/actions/workflows/security-audit.yml/badge.svg?branch=dev)](https://github.com/awaismansha-00/ci-with-github-actions/actions/workflows/security-audit.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+<p align="center">
+  <img src="assets/linkedin-ci-devsecops-cover.png" alt="Detailed CI pipeline graph: repository triggers branch into quality checks and security scans, then flow through build, container scanning, SBOM provenance, signing, and verified release" width="540">
+</p>
+
 A hands-on path from a first GitHub Actions workflow to a hardened CI and
 software-supply-chain pipeline. The repository combines short concept guides,
 manual labs, a real TypeScript service, production CI, and isolated security
